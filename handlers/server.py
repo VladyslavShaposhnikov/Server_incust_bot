@@ -17,8 +17,12 @@ class Answer(StatesGroup):
 
 #@dp.message_handler(commands=['start', 'help'])
 # start command
-async def commands_start(message : types.message):
+async def commands_start(message : types.message, state=FSMContext):
     await message.answer('Добро пожаловать {}!'.format(message.from_user.full_name), reply_markup=keyboard)
+    current_state = await state.get_state()
+    if current_state is None:
+        return
+    await state.finish()
 
 # @dp.callback_query_handler(text_contains='Ответить')
 # inline button [Ответить]
@@ -42,6 +46,7 @@ async def answer_txt(message:types.Message,state:FSMContext):
         data['answer'] = message.text
         with bot.with_token(CLIENT_BOT_TOKEN):
             await bot.send_message(data['chat_id'], f'Сообщение от владельца события {data["ivent_name"]}\n{data["answer"]}', reply_markup=keyboard3(answ='chat'+str(data['ivent_id']), show_iv='id'+str(data['ivent_id'])))
+    await answer()
     await state.finish()
 
 # @dp.message_handler(lambda message: message.text.startswith("❌Выйти из чата"), state='*')
@@ -62,7 +67,7 @@ async def show_ivent(call: CallbackQuery):
 
 
 def register_hendlers(dp: Dispatcher):
-    dp.register_message_handler(commands_start, commands=['start', 'help'])
+    dp.register_message_handler(commands_start, lambda message: message.text == "/start", state='*', commands=['start', 'help'])
     dp.register_message_handler(cancel_chat, lambda message: message.text.startswith("❌Выйти из чата"), state='*')
     dp.register_callback_query_handler(answer, text_contains='Ответить')
     dp.register_message_handler(answer_txt, state=Answer.answer_text)
